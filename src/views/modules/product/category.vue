@@ -3,6 +3,12 @@
     <el-switch v-model="draggable" active-text="开启拖拽" inactive-text="关闭拖拽"></el-switch>
     <el-button v-if="draggable" @click="batchSave">批量保存</el-button>
     <el-button type="danger" @click="batchDelete">批量删除</el-button>
+  <!--
+    :expand-on-click-node="false" 点击节点不会展开或折叠
+    show-checkbox 表示节点是否可以被选择
+    node-key 表示每个树节点用来作为唯一标识的属性，整棵树应该是唯一的
+    :default-expanded-keys="expandedKey" 表示默认展开的节点 key 数组
+  -->
     <el-tree
       :data="menus"
       :props="defaultProps"
@@ -18,6 +24,9 @@
       <span class="custom-tree-node" slot-scope="{ node, data }">
         <span>{{ node.label }}</span>
         <span>
+          <!--
+            v-if="node.level <=2" 表示当前接节点只有一级或二级节点才能添加，三级为子节点不能添加
+          -->
           <el-button
             v-if="node.level <=2"
             type="text"
@@ -25,6 +34,9 @@
             @click="() => append(data)"
           >Append</el-button>
           <el-button type="text" size="mini" @click="edit(data)">edit</el-button>
+          <!--
+            v-if="node.childNodes.length==0" 表示当前节点没有子节点的，显示按钮表示可以删除
+          -->
           <el-button
             v-if="node.childNodes.length==0"
             type="text"
@@ -34,13 +46,19 @@
         </span>
       </span>
     </el-tree>
-
+    <!--
+      :visible.sync="dialogVisible" 表示对话框展示
+      :close-on-click-modal="false" 表示不能通过点击model关闭dialog对话框
+    -->
     <el-dialog
       :title="title"
       :visible.sync="dialogVisible"
       width="30%"
       :close-on-click-modal="false"
     >
+      <!--
+        对话框表单组件
+      -->
       <el-form :model="category">
         <el-form-item label="分类名称">
           <el-input v-model="category.name" autocomplete="off"></el-input>
@@ -248,7 +266,7 @@ export default {
       this.dialogType = "edit";
       this.title = "修改分类";
       this.dialogVisible = true;
-
+      //为了防止多人操作时候，需要没发起前做好请求最新的节点
       //发送请求获取当前节点最新的数据
       this.$http({
         url: this.$http.adornUrl(`/product/category/info/${data.catId}`),
@@ -277,7 +295,9 @@ export default {
       this.dialogType = "add";
       this.title = "添加分类";
       this.dialogVisible = true;
+      //菜单的父id
       this.category.parentCid = data.catId;
+      //当前层级
       this.category.catLevel = data.catLevel * 1 + 1;
       this.category.catId = null;
       this.category.name = "";
@@ -297,6 +317,7 @@ export default {
     },
     //修改三级分类数据
     editCategory() {
+      /* 使用解构表达，取出我们只需要的字段进行操作即可 */
       var { catId, name, icon, productUnit } = this.category;
       this.$http({
         url: this.$http.adornUrl("/product/category/update"),
@@ -321,6 +342,7 @@ export default {
       this.$http({
         url: this.$http.adornUrl("/product/category/save"),
         method: "post",
+        //adornData是构造对象数据的
         data: this.$http.adornData(this.category, false)
       }).then(({ data }) => {
         this.$message({
